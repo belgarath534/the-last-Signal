@@ -1,0 +1,72 @@
+# The Last Signal, native iPhone version.
+# "Last Signal check" builds the app without signing; "Last Signal TestFlight" signs and uploads it.
+workflows:
+  last-signal-check:
+    name: Last Signal check (no signing)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      xcode: 27.1
+    scripts:
+      - name: Check the Swift engine against the web engine
+        script: |
+          for s in 1 2 3; do node tools/record-playthrough.mjs $s 4000 play$s.json; done
+          swift run LastSignalSim LastSignal/Story/story.json play*.json
+      - name: Build the app for iPhone (unsigned)
+        script: |
+          set -o pipefail
+          xcodebuild \
+            -project LastSignal.xcodeproj \
+            -scheme LastSignal \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath "$CM_BUILD_DIR/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build 2>&1 | tee /tmp/xcodebuild.log | grep -E "error:|warning: .*LastSignal|BUILD (SUCCEEDED|FAILED)"
+    artifacts:
+      - /tmp/xcodebuild.log
+
+  last-signal-testflight:
+    name: Last Signal TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: Accessible Backrooms
+    environment:
+      xcode: 27.1
+      ios_signing:
+        # Codemagic needs one stored profile here to install the signing certificate;
+        # the Last Signal profile itself is downloaded from Apple in the first step.
+        provisioning_profiles:
+          - Dungeon Descent Live Activity App Store
+        certificates:
+          - Accessible Backrooms Distribution
+    scripts:
+      - name: Get the App Store profile from Apple
+        script: |
+          # Uses the App Store Connect key from the integration above.
+          DEST="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$DEST"
+          app-store-connect profiles list --type IOS_APP_STORE --state ACTIVE \
+            --name "The Last Signal App Store" --save --profiles-dir "$DEST"
+          ls "$DEST"
+      - name: Use the App Store signing profiles
+        script: |
+          xcode-project use-profiles
+      - name: Set build number
+        script: |
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" LastSignal.xcodeproj/project.pbxproj
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --project LastSignal.xcodeproj \
+            --scheme LastSignal
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
