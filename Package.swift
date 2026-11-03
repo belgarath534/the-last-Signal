@@ -9,5 +9,6 @@ let package = Package(
     targets: [
         .target(name: "LastSignalCore", path: "LastSignal/Core"),
         .executableTarget(name: "LastSignalSim", dependencies: ["LastSignalCore"], path: "Tests/LastSignalSim"),
+        .executableTarget(name: "LastSignalUI", dependencies: ["LastSignalCore"], path: "Tests/LastSignalUI"),
     ]
 )
