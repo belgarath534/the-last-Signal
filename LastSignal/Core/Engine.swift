@@ -64,7 +64,7 @@ protocol GameListener: AnyObject {
     func stateChanged()
 }
 
-struct View {
+struct GameView {
     struct Action { let id: String, label: String }
     struct Object { let id: String, name: String, position: String? }
     struct Exit { let id: String, dir: String, label: String, lockedKnown: Bool }
@@ -280,10 +280,10 @@ final class Game {
         return Beat(lines: output, checkpoint: checkpointRequested)
     }
 
-    private func roomActionList() -> [View.Action] {
-        var list = [View.Action(id: "look", label: "Look around"), View.Action(id: "listen", label: "Listen")]
+    private func roomActionList() -> [GameView.Action] {
+        var list = [GameView.Action(id: "look", label: "Look around"), GameView.Action(id: "listen", label: "Listen")]
         for a in content.globalActions where evaluate(a["when"]) {
-            list.append(View.Action(id: a["id"]?.string ?? "", label: a["label"]?.string ?? ""))
+            list.append(GameView.Action(id: a["id"]?.string ?? "", label: a["label"]?.string ?? ""))
         }
         return list
     }
@@ -318,23 +318,23 @@ final class Game {
         (room()["name"]?.string ?? "", state.chapter, clockLabel(state.minutes))
     }
 
-    func view() -> View {
+    func view() -> GameView {
         let m = mode
         let r = room()
         let explore = m == "explore"
-        return View(
+        return GameView(
             mode: m,
             roomId: r["id"]?.string ?? state.location, roomName: r["name"]?.string ?? "", zone: r["zone"]?.string,
             clock: clockLabel(state.minutes),
             roomActions: explore ? roomActionList() : [],
-            objects: explore ? visibleObjects().map { View.Object(id: $0["id"]?.string ?? "", name: $0["name"]?.string ?? "", position: $0["position"]?.string) } : [],
-            exits: explore ? visibleExits().map { View.Exit(id: $0["id"]?.string ?? "", dir: $0["dir"]?.string ?? "", label: exitLabel($0), lockedKnown: lockedKnown($0)) } : [],
+            objects: explore ? visibleObjects().map { GameView.Object(id: $0["id"]?.string ?? "", name: $0["name"]?.string ?? "", position: $0["position"]?.string) } : [],
+            exits: explore ? visibleExits().map { GameView.Exit(id: $0["id"]?.string ?? "", dir: $0["dir"]?.string ?? "", label: exitLabel($0), lockedKnown: lockedKnown($0)) } : [],
             choices: m == "dialogue" ? dialogueChoices() : [],
             ended: state.ended, gameOver: state.gameOver)
     }
 
-    func objectActions(_ id: String) -> [View.Action] {
-        objectActionList(id).map { View.Action(id: $0["id"]?.string ?? "", label: $0["label"]?.string ?? "") }
+    func objectActions(_ id: String) -> [GameView.Action] {
+        objectActionList(id).map { GameView.Action(id: $0["id"]?.string ?? "", label: $0["label"]?.string ?? "") }
     }
 
     /// Text shown after loading a save or coming back to the game.

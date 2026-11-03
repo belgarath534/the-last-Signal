@@ -6,7 +6,7 @@ import Foundation
 
 /* ---------- what a screen is made of ---------- */
 
-struct UIButton {
+struct MenuButton {
     let label: String
     var pan: Double? = nil
     var id: String? = nil
@@ -17,7 +17,7 @@ enum UIBlock {
     case text(String, style: String = "body")          // body, status, fineprint, kind
     case narration([Line])                            // the text of what just happened; gets focus
     case list([String])
-    case buttons(String?, [UIButton])                 // a group under its own heading
+    case buttons(String?, [MenuButton])                 // a group under its own heading
     case picker(label: String, hint: String?, options: [(value: String, label: String)], selected: String, set: (String) -> Void)
     case slider(label: String, value: Double, set: (Double) -> Void, done: () -> Void)
     case toggle(label: String, hint: String?, value: Bool, set: (Bool) -> Void)
@@ -349,7 +349,7 @@ final class AppController: GameListener {
         switch v.mode {
         case "gameOver": blocks += gameOverControls(v)
         case "chapterEnd": blocks += chapterEndControls()
-        case "dialogue": blocks.append(.buttons("Respond", v.choices.enumerated().map { i, c in UIButton(label: "\(i + 1). \(c.text)") { [unowned self] in perform { game.choose(c.index) } } }))
+        case "dialogue": blocks.append(.buttons("Respond", v.choices.enumerated().map { i, c in MenuButton(label: "\(i + 1). \(c.text)") { [unowned self] in perform { game.choose(c.index) } } }))
         default:
             if let s = submenu, let o = v.objects.first(where: { $0.id == s }) { blocks.append(objectControls(o)) } else { blocks += exploreControls(v) }
         }
@@ -357,27 +357,27 @@ final class AppController: GameListener {
         return ScreenModel(title: title, blocks: blocks, focusNarration: true, isGame: true)
     }
 
-    private func exploreControls(_ v: View) -> [UIBlock] {
-        let actions = v.roomActions.map { a in UIButton(label: a.label) { [unowned self] in perform { game.roomAction(a.id) } } }
+    private func exploreControls(_ v: GameView) -> [UIBlock] {
+        let actions = v.roomActions.map { a in MenuButton(label: a.label) { [unowned self] in perform { game.roomAction(a.id) } } }
         let objects = v.objects.map { o in
-            UIButton(label: ([o.name, AppController.positionWord[o.position ?? ""]].compactMap { $0 }).joined(separator: ", "), pan: directionPan[o.position ?? ""] ?? 0, id: o.id) { [unowned self] in
+            MenuButton(label: ([o.name, AppController.positionWord[o.position ?? ""]].compactMap { $0 }).joined(separator: ", "), pan: directionPan[o.position ?? ""] ?? 0, id: o.id) { [unowned self] in
                 sound.cue("ui.select")
                 submenu = o.id
                 build(fresh: true)
             }
         }
-        let exits = v.exits.map { e -> UIButton in
+        let exits = v.exits.map { e -> MenuButton in
             let label = e.dir == "in" || e.dir == "out" ? e.label : "\(AppController.dirWord[e.dir] ?? e.dir): \(e.label)"
-            return UIButton(label: e.lockedKnown ? "\(label), locked" : label, pan: directionPan[e.dir] ?? 0) { [unowned self] in perform { game.go(e.id) } }
+            return MenuButton(label: e.lockedKnown ? "\(label), locked" : label, pan: directionPan[e.dir] ?? 0) { [unowned self] in perform { game.go(e.id) } }
         }
         return [.buttons("Actions", actions), .buttons("Around you", objects), .buttons("Exits", exits)]
     }
 
-    private func objectControls(_ obj: View.Object) -> UIBlock {
+    private func objectControls(_ obj: GameView.Object) -> UIBlock {
         var actions = game.objectActions(obj.id).map { a in
-            UIButton(label: a.label, pan: directionPan[obj.position ?? ""] ?? 0) { [unowned self] in perform { game.act(obj.id, a.id) } }
+            MenuButton(label: a.label, pan: directionPan[obj.position ?? ""] ?? 0) { [unowned self] in perform { game.act(obj.id, a.id) } }
         }
-        actions.append(UIButton(label: "Back to the room") { [unowned self] in
+        actions.append(MenuButton(label: "Back to the room") { [unowned self] in
             sound.cue("ui.back")
             submenu = nil
             build(fresh: true)
@@ -385,12 +385,12 @@ final class AppController: GameListener {
         return .buttons(obj.name, actions)
     }
 
-    private func menuControls(_ v: View) -> UIBlock {
+    private func menuControls(_ v: GameView) -> UIBlock {
         var items = [
-            UIButton(label: "Repeat last") { [unowned self] in repeatLast() },
-            UIButton(label: "Journal") { [unowned self] in open(.journal) },
-            UIButton(label: "Inventory") { [unowned self] in open(.inventory) },
-            UIButton(label: "Pause menu") { [unowned self] in open(.pause) },
+            MenuButton(label: "Repeat last") { [unowned self] in repeatLast() },
+            MenuButton(label: "Journal") { [unowned self] in open(.journal) },
+            MenuButton(label: "Inventory") { [unowned self] in open(.inventory) },
+            MenuButton(label: "Pause menu") { [unowned self] in open(.pause) },
         ]
         if v.mode == "dialogue" { items.remove(at: 2) }
         return .buttons("Menu", items)
@@ -429,24 +429,24 @@ final class AppController: GameListener {
         } else {
             blocks.append(.text(hasNext ? "Your progress is saved." : "This is the end of the current build. Your progress is saved, and your choices will carry into the next chapter."))
         }
-        var buttons: [UIButton] = []
+        var buttons: [MenuButton] = []
         let nextTitle = content.chapters[s.chapter + 1]?["title"]?.string ?? ""
         if ending != nil {
-            if hasNext { buttons.append(UIButton(label: "Continue to Part Two: \(nextTitle)") { [unowned self] in perform { game.startNextChapter() } }) }
-            buttons.append(UIButton(label: "Go back to the final choice") { [unowned self] in loadFrom("checkpoint") })
+            if hasNext { buttons.append(MenuButton(label: "Continue to Part Two: \(nextTitle)") { [unowned self] in perform { game.startNextChapter() } }) }
+            buttons.append(MenuButton(label: "Go back to the final choice") { [unowned self] in loadFrom("checkpoint") })
         } else if hasNext {
-            buttons.append(UIButton(label: "Continue to \(nextTitle)") { [unowned self] in perform { game.startNextChapter() } })
+            buttons.append(MenuButton(label: "Continue to \(nextTitle)") { [unowned self] in perform { game.startNextChapter() } })
         }
-        if ending == nil { buttons.append(UIButton(label: "Keep exploring Chapter \(s.chapter)") { [unowned self] in perform { game.continueAfterChapter() } }) }
-        buttons.append(UIButton(label: "Return to the main menu") { [unowned self] in show(.title) })
+        if ending == nil { buttons.append(MenuButton(label: "Keep exploring Chapter \(s.chapter)") { [unowned self] in perform { game.continueAfterChapter() } }) }
+        buttons.append(MenuButton(label: "Return to the main menu") { [unowned self] in show(.title) })
         blocks.append(.buttons("What next", buttons))
         return blocks
     }
 
-    private func gameOverControls(_ v: View) -> [UIBlock] {
-        var buttons: [UIButton] = []
-        if !saves.meta("checkpoint").empty { buttons.append(UIButton(label: "Try again from the last checkpoint") { [unowned self] in loadFrom("checkpoint") }) }
-        buttons.append(UIButton(label: "Return to the main menu") { [unowned self] in show(.title) })
+    private func gameOverControls(_ v: GameView) -> [UIBlock] {
+        var buttons: [MenuButton] = []
+        if !saves.meta("checkpoint").empty { buttons.append(MenuButton(label: "Try again from the last checkpoint") { [unowned self] in loadFrom("checkpoint") }) }
+        buttons.append(MenuButton(label: "Return to the main menu") { [unowned self] in show(.title) })
         return [.heading("You died"), .text(v.gameOver?.text ?? ""), .buttons(nil, buttons)]
     }
 
@@ -463,9 +463,9 @@ final class AppController: GameListener {
             .text("This game is designed to be played entirely by sound and text, without needing to see the screen. Headphones are strongly recommended: sounds on your left and right tell you where things are."),
             .text("How would you like the game to speak to you? You can change this later in Settings."),
             .buttons("Choose how to play", [
-                UIButton(label: "I use a screen reader, such as VoiceOver") { choose("screenreader") },
-                UIButton(label: "Read the game aloud to me") { choose("selfvoice") },
-                UIButton(label: "I will read the text myself") { choose("text") },
+                MenuButton(label: "I use a screen reader, such as VoiceOver") { choose("screenreader") },
+                MenuButton(label: "Read the game aloud to me") { choose("selfvoice") },
+                MenuButton(label: "I will read the text myself") { choose("text") },
             ]),
         ])
     }
@@ -474,15 +474,15 @@ final class AppController: GameListener {
         sound.setSoundscape("outdoor_rain", powered: false, key: "title", state: nil)
         sound.playMusic("music-title")
         let latest = saves.latest()
-        var items: [UIButton] = []
-        if let latest { items.append(UIButton(label: "Continue") { [unowned self] in loadFrom(latest) }) }
-        items.append(UIButton(label: "New game") { [unowned self] in
+        var items: [MenuButton] = []
+        if let latest { items.append(MenuButton(label: "Continue") { [unowned self] in loadFrom(latest) }) }
+        items.append(MenuButton(label: "New game") { [unowned self] in
             if latest == nil { return newGame() }
             confirm(Confirm(question: "Start a new game? Your autosave will be replaced. Saves in numbered slots are kept.", yes: "Start a new game", no: "Cancel", onYes: { [unowned self] in newGame() }, onNo: nil))
         })
-        if latest != nil { items.append(UIButton(label: "Load game") { [unowned self] in open(.saves(false)) }) }
-        items.append(UIButton(label: "Settings") { [unowned self] in open(.settings) })
-        items.append(UIButton(label: "How to play") { [unowned self] in open(.help) })
+        if latest != nil { items.append(MenuButton(label: "Load game") { [unowned self] in open(.saves(false)) }) }
+        items.append(MenuButton(label: "Settings") { [unowned self] in open(.settings) })
+        items.append(MenuButton(label: "How to play") { [unowned self] in open(.help) })
         if settings.speechMode == "selfvoice" { host?.speak("The Last Signal. Main menu.") }
         return ScreenModel(title: "The Last Signal", blocks: [
             .text("A psychological horror investigation. Played by ear.", style: "tagline"),
@@ -496,8 +496,8 @@ final class AppController: GameListener {
         return ScreenModel(title: "Are you sure?", blocks: [
             .text(c.question),
             .buttons("Choose", [
-                UIButton(label: c.yes) { c.onYes() },
-                UIButton(label: c.no) { [unowned self] in if let no = c.onNo { no() } else { back() } },
+                MenuButton(label: c.yes) { c.onYes() },
+                MenuButton(label: c.no) { [unowned self] in if let no = c.onNo { no() } else { back() } },
             ]),
         ])
     }
@@ -507,13 +507,13 @@ final class AppController: GameListener {
         return ScreenModel(title: "Paused", blocks: [
             .text("\(m.room). \(m.clock).", style: "status"),
             .buttons("Pause menu", [
-                UIButton(label: "Resume") { [unowned self] in back() },
-                UIButton(label: "Save game") { [unowned self] in open(.saves(true)) },
-                UIButton(label: "Load game") { [unowned self] in open(.saves(false)) },
-                UIButton(label: "Message history") { [unowned self] in open(.history) },
-                UIButton(label: "Settings") { [unowned self] in open(.settings) },
-                UIButton(label: "How to play") { [unowned self] in open(.help) },
-                UIButton(label: "Quit to main menu") { [unowned self] in
+                MenuButton(label: "Resume") { [unowned self] in back() },
+                MenuButton(label: "Save game") { [unowned self] in open(.saves(true)) },
+                MenuButton(label: "Load game") { [unowned self] in open(.saves(false)) },
+                MenuButton(label: "Message history") { [unowned self] in open(.history) },
+                MenuButton(label: "Settings") { [unowned self] in open(.settings) },
+                MenuButton(label: "How to play") { [unowned self] in open(.help) },
+                MenuButton(label: "Quit to main menu") { [unowned self] in
                     autosave()
                     confirm(Confirm(question: "Quit to the main menu? Your progress has been autosaved.", yes: "Quit to main menu", no: "Stay", onYes: { [unowned self] in show(.title) }, onNo: nil))
                 },
@@ -537,7 +537,7 @@ final class AppController: GameListener {
     private func savesScreen(_ saving: Bool) -> ScreenModel {
         let slots = saveSlots.filter { !(saving && ($0 == "auto" || $0 == "checkpoint")) }
         let buttons = slots.map { slot in
-            UIButton(label: describeSlot(slot)) { [unowned self] in
+            MenuButton(label: describeSlot(slot)) { [unowned self] in
                 let s = saves.meta(slot)
                 if saving {
                     let doSave = { [unowned self] in
@@ -560,7 +560,7 @@ final class AppController: GameListener {
         return ScreenModel(title: saving ? "Save game" : "Load game", blocks: [
             .text(saving ? "Choose a slot to save to. The game also autosaves after every action." : "Choose a save to load."),
             .buttons("Save slots", buttons),
-            .buttons(nil, [UIButton(label: "Back") { [unowned self] in back() }]),
+            .buttons(nil, [MenuButton(label: "Back") { [unowned self] in back() }]),
         ])
     }
 
@@ -568,7 +568,7 @@ final class AppController: GameListener {
         ScreenModel(title: "Message history", blocks: [
             .text(history.isEmpty ? "Nothing yet." : "Everything that has happened this session, oldest first. The most recent is at the end."),
             .list(history.map { $0.map(AppController.lineText).joined(separator: " ") }),
-            .buttons(nil, [UIButton(label: "Back") { [unowned self] in back() }]),
+            .buttons(nil, [MenuButton(label: "Back") { [unowned self] in back() }]),
         ])
     }
 
@@ -606,8 +606,8 @@ final class AppController: GameListener {
             .text("Listen is a real tool, not decoration. Some things in the facility can only be found by listening for them. Time passes as you act, not while you read, so take as long as you need."),
             .heading("Daniel and trust"),
             .text("How honest you are, and what you choose to say, changes how much Daniel trusts you. Lies are remembered, and can be discovered later. By default a soft sound plays when his trust changes. You can turn that off, or have it spoken, in Settings."),
-            .buttons("Sound glossary", AppController.glossary.map { cue, label in UIButton(label: "Play: \(label)") { [unowned self] in sound.cue(cue) } }),
-            .buttons(nil, [UIButton(label: "Back") { [unowned self] in back() }]),
+            .buttons("Sound glossary", AppController.glossary.map { cue, label in MenuButton(label: "Play: \(label)") { [unowned self] in sound.cue(cue) } }),
+            .buttons(nil, [MenuButton(label: "Back") { [unowned self] in back() }]),
         ])
     }
 
@@ -624,7 +624,7 @@ final class AppController: GameListener {
             blocks.append(.picker(label: "Built-in voice", hint: nil, options: [("", "Default")] + voices.map { ($0.id, $0.name) },
                                   selected: settings.voiceName, set: { [unowned self] in set(\.voiceName, $0); build() }))
         }
-        blocks.append(.buttons(nil, [UIButton(label: "Test the built-in voice") { [unowned self] in
+        blocks.append(.buttons(nil, [MenuButton(label: "Test the built-in voice") { [unowned self] in
             if settings.speechMode != "selfvoice" { host?.notify("The built-in voice is only used when \"Read aloud with the built-in voice\" is selected.", assertive: false) }
             else { host?.speak("Unit 14, dispatch. Status check on the signal call, over.") }
         }]))
@@ -638,8 +638,8 @@ final class AppController: GameListener {
         blocks.append(.toggle(label: "Reduce sudden loud sounds", hint: nil, value: settings.reduceStartles, set: { [unowned self] in set(\.reduceStartles, $0) }))
         blocks.append(.toggle(label: "Vibration", hint: "Feel 001's footsteps, alarms and locked doors.", value: settings.haptics, set: { [unowned self] in set(\.haptics, $0) }))
         blocks.append(.buttons("Headphone check", [
-            UIButton(label: "Play a sound on the left", pan: -0.9) { [unowned self] in sound.cue("door", pan: -0.9) },
-            UIButton(label: "Play a sound on the right", pan: 0.9) { [unowned self] in sound.cue("door", pan: 0.9) },
+            MenuButton(label: "Play a sound on the left", pan: -0.9) { [unowned self] in sound.cue("door", pan: -0.9) },
+            MenuButton(label: "Play a sound on the right", pan: 0.9) { [unowned self] in sound.cue("door", pan: 0.9) },
         ]))
         blocks.append(.heading("Gameplay"))
         blocks.append(.picker(label: "When Daniel’s trust changes", hint: "Turning this off makes his feelings harder to read, as they would be in person.",
@@ -650,7 +650,7 @@ final class AppController: GameListener {
                               selected: settings.textSize, set: { [unowned self] in set(\.textSize, $0); build() }))
         blocks.append(.toggle(label: "High contrast", hint: nil, value: settings.highContrast, set: { [unowned self] in set(\.highContrast, $0); build() }))
         blocks.append(.buttons("Finish", [
-            UIButton(label: "Reset all settings to default") { [unowned self] in
+            MenuButton(label: "Reset all settings to default") { [unowned self] in
                 let keep = settings.firstRunDone
                 settings = GameSettings(); settings.firstRunDone = keep
                 set(\.firstRunDone, keep)
@@ -658,7 +658,7 @@ final class AppController: GameListener {
                 build(fresh: true)
                 host?.notify("Settings reset.", assertive: false)
             },
-            UIButton(label: "Back") { [unowned self] in back() },
+            MenuButton(label: "Back") { [unowned self] in back() },
         ]))
         return ScreenModel(title: "Settings", blocks: blocks)
     }
@@ -670,8 +670,8 @@ final class AppController: GameListener {
         let c = game.content
         let active = game.objectives("active").map { $0.text }
         let done = game.objectives("done").map { $0.text }
-        func entry(_ id: String, _ e: JSON?) -> UIButton {
-            UIButton(label: "\(e?["title"]?.string ?? id)\(s.journal.read.contains(id) ? "" : ", unread")") { [unowned self] in open(.reader(id)) }
+        func entry(_ id: String, _ e: JSON?) -> MenuButton {
+            MenuButton(label: "\(e?["title"]?.string ?? id)\(s.journal.read.contains(id) ? "" : ", unread")") { [unowned self] in open(.reader(id)) }
         }
         let docs = s.journal.documents.map { entry($0, c.documents[$0]) }
         let recs = s.journal.recordings.map { entry($0, c.recordings[$0]) }
@@ -679,7 +679,7 @@ final class AppController: GameListener {
         if !done.isEmpty { blocks += [.heading("Completed"), .list(done)] }
         if docs.isEmpty { blocks += [.heading("Documents"), .text("None found yet.")] } else { blocks.append(.buttons("Documents, \(docs.count)", docs)) }
         if !recs.isEmpty { blocks.append(.buttons("Recordings, \(recs.count)", recs)) }
-        blocks.append(.buttons(nil, [UIButton(label: "Back") { [unowned self] in back() }]))
+        blocks.append(.buttons(nil, [MenuButton(label: "Back") { [unowned self] in back() }]))
         return ScreenModel(title: "Journal", blocks: blocks)
     }
 
@@ -696,7 +696,7 @@ final class AppController: GameListener {
         return ScreenModel(title: entry?["title"]?.string ?? "", blocks: [
             .text(isRecording ? "Recording transcript" : "Document", style: "kind"),
         ] + (entry?["text"]?.strings ?? []).map { .text($0) } + [
-            .buttons(nil, [UIButton(label: "Back to journal") { [unowned self] in back() }]),
+            .buttons(nil, [MenuButton(label: "Back to journal") { [unowned self] in back() }]),
         ])
     }
 
@@ -708,7 +708,7 @@ final class AppController: GameListener {
         return ScreenModel(title: "Inventory", blocks: [
             .text(items.isEmpty ? "You are carrying nothing." : "You are carrying \(items.count) \(items.count == 1 ? "thing" : "things"). Items are used automatically: when an item can help, a new option appears on the thing it works with."),
             .list(items),
-            .buttons(nil, [UIButton(label: "Back") { [unowned self] in back() }]),
+            .buttons(nil, [MenuButton(label: "Back") { [unowned self] in back() }]),
         ])
     }
 }

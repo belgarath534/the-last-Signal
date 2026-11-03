@@ -78,7 +78,7 @@ struct ContentView: View {
     }
 
     private func pressButton(_ label: String) {
-        model.screen.blocks.lazy.compactMap { block -> UIButton? in
+        model.screen.blocks.lazy.compactMap { block -> MenuButton? in
             if case let .buttons(_, bs) = block { return bs.first { $0.label == label } }
             return nil
         }.first?.action()
@@ -158,7 +158,7 @@ struct ContentView: View {
         case let .picker(label, hint, options, selected, set):
             VStack(alignment: .leading, spacing: 6) {
                 Picker(label, selection: Binding(get: { selected }, set: { set($0) })) {
-                    ForEach(options, id: \.value) { Text($0.label).tag($0.value) }
+                    ForEach(Array(options.enumerated()), id: \.offset) { _, o in Text(o.label).tag(o.value) }
                 }
                 .pickerStyle(.menu)
                 .tint(p.signal)

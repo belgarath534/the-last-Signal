@@ -231,11 +231,11 @@ extension Game {
 
     func endDialogue() { state.dialogue = nil }
 
-    func dialogueChoices() -> [View.ChoiceItem] {
+    func dialogueChoices() -> [GameView.ChoiceItem] {
         guard let n = node() else { return [] }
         let list = (n["choices"]?.array ?? []).enumerated().filter { evaluate($0.element["when"]) }
-        if !list.isEmpty { return list.map { View.ChoiceItem(index: $0.offset, text: $0.element["text"]?.string ?? "") } }
-        return [View.ChoiceItem(index: -1, text: n["next"]?.truthy == true ? "Continue" : "End conversation")]
+        if !list.isEmpty { return list.map { GameView.ChoiceItem(index: $0.offset, text: $0.element["text"]?.string ?? "") } }
+        return [GameView.ChoiceItem(index: -1, text: n["next"]?.truthy == true ? "Continue" : "End conversation")]
     }
 
     func chooseDialogue(_ index: Int) {

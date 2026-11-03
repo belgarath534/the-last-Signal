@@ -39,8 +39,8 @@ app.host = host
 app.sound.out = audio
 app.start()
 
-func buttons() -> [(group: String?, b: UIButton)] {
-    app.model.blocks.flatMap { blk -> [(String?, UIButton)] in if case let .buttons(h, bs) = blk { return bs.map { (h, $0) } }; return [] }
+func buttons() -> [(group: String?, b: MenuButton)] {
+    app.model.blocks.flatMap { blk -> [(String?, MenuButton)] in if case let .buttons(h, bs) = blk { return bs.map { (h, $0) } }; return [] }
 }
 func press(_ prefix: String) throws {
     guard let b = buttons().first(where: { $0.b.label.hasPrefix(prefix) })?.b else {
