@@ -1,7 +1,9 @@
+*.xcuserstate
+.DS_Store
 .build/
 .swiftpm/
 DerivedData/
+build.log
 build/
+play*.json
 xcuserdata/
-*.xcuserstate
-.DS_Store

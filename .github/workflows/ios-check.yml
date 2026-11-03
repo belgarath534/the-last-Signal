@@ -1,0 +1,39 @@
+name: iPhone build check
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check the Swift engine against the web engine
+        run: |
+          node tools/export-content.mjs
+          git diff --exit-code LastSignal/Story/story.json || (echo "story.json is out of date: run node tools/export-content.mjs" && exit 1)
+          for s in 1 2 3 4 5 6; do node tools/record-playthrough.mjs $s 4000 play$s.json; done
+          swift run LastSignalSim LastSignal/Story/story.json play*.json
+          swift run LastSignalUI LastSignal/Story/story.json
+      - name: Build the app for iPhone (unsigned)
+        if: success() || failure()
+        run: |
+          set -o pipefail
+          xcodebuild -version
+          xcodebuild \
+            -project LastSignal.xcodeproj \
+            -scheme LastSignal \
+            -configuration Debug \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+      - name: Keep the build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore

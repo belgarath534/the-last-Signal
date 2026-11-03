@@ -45,7 +45,7 @@ protocol AppHost: AnyObject {
 
 /* ---------- settings (web/js/core/settings.js) ---------- */
 
-struct Settings: Codable, Equatable {
+struct GameSettings: Codable, Equatable {
     var firstRunDone = false
     var speechMode = "screenreader"     // screenreader, selfvoice, text
     var voiceRate = 1.0
@@ -66,7 +66,7 @@ struct Settings: Codable, Equatable {
     // older or partial saved settings fill in the defaults
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        let d = Settings()
+        let d = GameSettings()
         firstRunDone = (try? c.decode(Bool.self, forKey: .firstRunDone)) ?? d.firstRunDone
         speechMode = (try? c.decode(String.self, forKey: .speechMode)) ?? d.speechMode
         voiceRate = (try? c.decode(Double.self, forKey: .voiceRate)) ?? d.voiceRate
@@ -126,7 +126,7 @@ final class AppController: GameListener {
     let saves: Saves
     weak var host: AppHost?
     private let store: UserDefaults
-    private(set) var settings: Settings
+    private(set) var settings: GameSettings
 
     enum Screen: Equatable {
         case firstRun, title, game, journal, reader(String), inventory, pause, saves(Bool), history, help, settings, confirm(Int)
@@ -150,7 +150,7 @@ final class AppController: GameListener {
         self.store = store
         self.saves = Saves(store: store)
         game = Game(content: content)
-        if let d = store.data(forKey: "tls.settings"), let s = try? JSONDecoder().decode(Settings.self, from: d) { settings = s } else { settings = Settings() }
+        if let d = store.data(forKey: "tls.settings"), let s = try? JSONDecoder().decode(GameSettings.self, from: d) { settings = s } else { settings = GameSettings() }
         game.listener = self
         sound.reduceStartles = { [weak self] in self?.settings.reduceStartles ?? false }
         sound.mono = { [weak self] in self?.settings.monoAudio ?? false }
@@ -162,10 +162,10 @@ final class AppController: GameListener {
         show(settings.firstRunDone ? .title : .firstRun)
     }
 
-    func set<T>(_ key: WritableKeyPath<Settings, T>, _ value: T) {
+    func set<T>(_ key: WritableKeyPath<GameSettings, T>, _ value: T) {
         settings[keyPath: key] = value
         if let d = try? JSONEncoder().encode(settings) { store.set(d, forKey: "tls.settings") }
-        if (key as AnyKeyPath) == \Settings.explorationMusic { updateMusic() }
+        if (key as AnyKeyPath) == \GameSettings.explorationMusic { updateMusic() }
     }
     func applyVolumes() {
         sound.out?.applyVolumes(master: settings.masterVolume, effects: settings.effectsVolume, ambience: settings.ambienceVolume, music: settings.musicVolume)
@@ -629,9 +629,9 @@ final class AppController: GameListener {
             else { host?.speak("Unit 14, dispatch. Status check on the signal call, over.") }
         }]))
         blocks.append(.heading("Sound"))
-        for (label, key) in [("Master volume", \Settings.masterVolume), ("Ambience volume", \Settings.ambienceVolume), ("Effects volume", \Settings.effectsVolume), ("Music volume", \Settings.musicVolume)] {
+        for (label, key) in [("Master volume", \GameSettings.masterVolume), ("Ambience volume", \GameSettings.ambienceVolume), ("Effects volume", \GameSettings.effectsVolume), ("Music volume", \GameSettings.musicVolume)] {
             blocks.append(.slider(label: label, value: settings[keyPath: key], set: { [unowned self] in set(key, $0); applyVolumes() },
-                                  done: { [unowned self] in sound.cue(key == \Settings.ambienceVolume ? "signal" : "ui.select") }))
+                                  done: { [unowned self] in sound.cue(key == \GameSettings.ambienceVolume ? "signal" : "ui.select") }))
         }
         blocks.append(.toggle(label: "Music while exploring", hint: "Quiet music under every chapter. Turn off if it ever covers VoiceOver.", value: settings.explorationMusic, set: { [unowned self] in set(\.explorationMusic, $0) }))
         blocks.append(.toggle(label: "Mono audio", hint: "Plays every sound in both ears. Directions are still spoken in text.", value: settings.monoAudio, set: { [unowned self] in set(\.monoAudio, $0) }))
@@ -645,10 +645,14 @@ final class AppController: GameListener {
         blocks.append(.picker(label: "When Daniel’s trust changes", hint: "Turning this off makes his feelings harder to read, as they would be in person.",
                               options: [("sound", "Play a soft sound"), ("speech", "Play a sound and say it"), ("off", "Tell me nothing")],
                               selected: settings.trustFeedback, set: { [unowned self] in set(\.trustFeedback, $0); build() }))
+        blocks.append(.heading("Display"))
+        blocks.append(.picker(label: "Text size", hint: nil, options: [("normal", "Normal"), ("large", "Large"), ("larger", "Larger")],
+                              selected: settings.textSize, set: { [unowned self] in set(\.textSize, $0); build() }))
+        blocks.append(.toggle(label: "High contrast", hint: nil, value: settings.highContrast, set: { [unowned self] in set(\.highContrast, $0); build() }))
         blocks.append(.buttons("Finish", [
             UIButton(label: "Reset all settings to default") { [unowned self] in
                 let keep = settings.firstRunDone
-                settings = Settings(); settings.firstRunDone = keep
+                settings = GameSettings(); settings.firstRunDone = keep
                 set(\.firstRunDone, keep)
                 applyVolumes()
                 build(fresh: true)
