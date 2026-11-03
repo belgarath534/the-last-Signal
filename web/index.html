@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0d0f" />
+    <meta name="description" content="The Last Signal: an accessibility-first psychological horror investigation game, fully playable with a screen reader." />
+    <title>The Last Signal</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main id="screen" aria-live="off">
+      <noscript><p>The Last Signal needs JavaScript to run.</p></noscript>
+    </main>
+
+    <!-- Status announcements for screen readers. Visually hidden. -->
+    <div id="live-polite" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+    <div id="live-assertive" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,145 @@
+/* The Last Signal. Dark, quiet, very legible. Large touch targets,
+   always-visible focus, nothing that relies on colour alone. */
+
+:root {
+  --bg: #0b0d0f;
+  --panel: #14181c;
+  --text: #e6e2da;
+  --muted: #a8a399;
+  --accent: #d9534f;     /* emergency red */
+  --signal: #7fc8a9;     /* radio green */
+  --focus: #ffd166;
+  --border: #2b3138;
+  --speech: #c9dcef;
+  --base-size: 18px;
+  --line: 1.6;
+}
+
+:root[data-text-size='large'] { --base-size: 21px; }
+:root[data-text-size='larger'] { --base-size: 25px; }
+
+:root[data-contrast='high'] {
+  --bg: #000;
+  --panel: #000;
+  --text: #fff;
+  --muted: #fff;
+  --accent: #ff6b6b;
+  --signal: #8ff0c4;
+  --border: #fff;
+  --speech: #fff;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: var(--base-size);
+  line-height: var(--line);
+  -webkit-text-size-adjust: 100%;
+}
+
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom));
+}
+
+h1 { font-size: 1.5rem; line-height: 1.25; margin: 0.5rem 0 0.25rem; letter-spacing: 0.02em; }
+h2 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+h3 { font-size: 1rem; margin: 1rem 0 0.5rem; color: var(--muted); }
+p { margin: 0.5rem 0; }
+
+.game-title {
+  font-size: 2.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  margin-top: 2rem;
+}
+.tagline { color: var(--muted); }
+.fineprint { color: var(--muted); font-size: 0.85rem; margin-top: 2rem; }
+
+.status { color: var(--muted); font-size: 0.9rem; margin: 0; }
+
+/* Narration: the heart of the game. */
+.beat {
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+}
+.line-heading { font-weight: 700; }
+.line-system { color: var(--signal); }
+.line-summary { color: var(--muted); }
+.line-speech { color: var(--speech); }
+.line-alert { color: var(--accent); font-weight: 700; }
+
+/* Buttons: one per row, big enough for any finger. */
+.btn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:active { transform: translateY(1px); }
+.btn[aria-disabled='true'] { color: var(--muted); border-style: dashed; }
+.btn.choice { border-left: 3px solid var(--speech); }
+.btn-back { margin-top: 1.5rem; }
+
+:focus { outline: none; }
+:focus-visible, .btn:focus, select:focus, input:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.beat:focus, h1:focus, h2:focus { outline: 2px dashed var(--focus); outline-offset: 4px; }
+
+.group { margin-bottom: 0.5rem; }
+
+.prose-list { padding-left: 1.2rem; }
+.prose-list li, .summary li { margin: 0.35rem 0; }
+
+.document {
+  background: var(--panel);
+  padding: 1rem 1.1rem;
+  border-radius: 4px;
+  font-family: 'Courier New', Courier, monospace;
+}
+.kind { color: var(--muted); font-size: 0.9rem; }
+
+.history { padding-left: 1.4rem; }
+.history li { border-bottom: 1px solid var(--border); padding: 0.5rem 0; }
+
+/* Settings form */
+.field { margin: 0.9rem 0; }
+.field label { display: block; margin-bottom: 0.3rem; }
+.field.checkbox { display: grid; grid-template-columns: auto 1fr; gap: 0.6rem; align-items: center; }
+.field.checkbox label { margin: 0; }
+.field.checkbox .hint { grid-column: 2; }
+select, input[type='range'] { width: 100%; min-height: 44px; font: inherit; }
+select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem; }
+input[type='checkbox'] { width: 28px; height: 28px; }
+.hint { color: var(--muted); font-size: 0.88rem; margin: 0.25rem 0 0; }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
