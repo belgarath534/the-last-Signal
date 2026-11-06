@@ -15,11 +15,35 @@ final class AppModel: ObservableObject, AppHost {
     init() {
         let url = Bundle.main.url(forResource: "story", withExtension: "json")!
         let content = try! Content(data: Data(contentsOf: url))
-        controller = AppController(content: content)
+        // For App Store screenshots: `-shot NAME` starts from a clean slate and opens one screen.
+        let args = ProcessInfo.processInfo.arguments
+        let shot = args.firstIndex(of: "-shot").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
+        var store = UserDefaults.standard
+        if shot != nil, let d = UserDefaults(suiteName: "screenshots") { d.removePersistentDomain(forName: "screenshots"); store = d }
+        controller = AppController(content: content, store: store)
         controller.host = self
         controller.sound.out = audio
         audio.preload(Array(Set(cueSamples.values)) + Array(sampleFiles.values) + ["sfx-creak", "sfx-crack", "sfx-far-metal", "sfx-far-clank", "sfx-chant"])
         controller.start()
+        if let shot { openForScreenshot(shot) }
+    }
+
+    private func press(_ prefix: String) {
+        for block in controller.model.blocks {
+            if case let .buttons(_, bs) = block, let b = bs.first(where: { $0.label.hasPrefix(prefix) }) { b.action(); return }
+        }
+    }
+    private func openForScreenshot(_ name: String) {
+        let steps: [String: [String]] = [
+            "title": ["I use a screen reader"],
+            "intro": ["I use a screen reader", "New game"],
+            "glovebox": ["I use a screen reader", "New game", "Glovebox", "Open the glovebox"],
+            "outside": ["I use a screen reader", "New game", "Step out into the rain"],
+            "journal": ["I use a screen reader", "New game", "Police radio", "Review the call notes", "Back to the room", "Journal"],
+            "settings": ["I use a screen reader", "New game", "Pause menu", "Settings"],
+        ]
+        for s in steps[name] ?? [] { press(s) }
+        render()
     }
 
     func render() {

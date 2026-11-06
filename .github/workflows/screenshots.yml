@@ -1,0 +1,51 @@
+name: App Store screenshots
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  shots:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for the simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project LastSignal.xcodeproj -scheme LastSignal -configuration Debug \
+            -destination "generic/platform=iOS Simulator" -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+      - name: Take screenshots
+        run: |
+          APP=$(find build/Build/Products -name "LastSignal.app" | head -1)
+          mkdir -p shots
+          shoot() { # device-name-pattern prefix
+            DEV=$(xcrun simctl list devices available | grep -E "$1" | head -1 | grep -oE "[0-9A-F-]{36}")
+            echo "$2: $DEV"
+            xcrun simctl boot "$DEV"
+            xcrun simctl bootstatus "$DEV" -b
+            xcrun simctl status_bar "$DEV" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
+            xcrun simctl ui "$DEV" appearance dark
+            xcrun simctl install "$DEV" "$APP"
+            n=1
+            for s in title intro glovebox outside journal settings; do
+              xcrun simctl launch "$DEV" com.lastsignal.audiogame -shot $s
+              sleep 8
+              xcrun simctl io "$DEV" screenshot "shots/$2-$n-$s.png"
+              xcrun simctl terminate "$DEV" com.lastsignal.audiogame || true
+              n=$((n+1))
+            done
+            xcrun simctl shutdown "$DEV"
+          }
+          shoot "iPhone 16 Pro Max" iphone
+          shoot "iPad Pro 13-inch" ipad
+          ls -la shots
+      - name: Save them on the screenshots branch
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan screenshots
+          git rm -rf --cached . > /dev/null
+          git add shots
+          git commit -m "Screenshots"
+          git push -f origin screenshots
