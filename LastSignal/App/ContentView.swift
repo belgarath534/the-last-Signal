@@ -19,7 +19,11 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var phase
 
     private var p: Palette { model.settings.highContrast ? .high : .normal }
-    private var scale: CGFloat { model.settings.textSize == "larger" ? 1.4 : model.settings.textSize == "large" ? 1.17 : 1 }
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var scale: CGFloat {
+        let user: CGFloat = model.settings.textSize == "larger" ? 1.4 : model.settings.textSize == "large" ? 1.17 : 1
+        return user * (sizeClass == .regular ? 1.35 : 1)   // iPad: larger text for the bigger screen
+    }
     private func font(_ size: CGFloat, _ style: Font.TextStyle = .body, bold: Bool = false) -> Font {
         .system(size: size * scale, weight: bold ? .semibold : .regular).leading(.standard)
     }
@@ -41,7 +45,7 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 24)
-                .frame(maxWidth: 760, alignment: .leading)
+                .frame(maxWidth: sizeClass == .regular ? 900 : 760, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
             .background(p.bg.ignoresSafeArea())
@@ -157,6 +161,7 @@ struct ContentView: View {
             .padding(.top, 4)
         case let .picker(label, hint, options, selected, set):
             VStack(alignment: .leading, spacing: 6) {
+                Text(label).font(font(18)).foregroundStyle(p.text).accessibilityHidden(true)
                 Picker(label, selection: Binding(get: { selected }, set: { set($0) })) {
                     ForEach(Array(options.enumerated()), id: \.offset) { _, o in Text(o.label).tag(o.value) }
                 }
