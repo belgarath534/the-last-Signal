@@ -192,12 +192,12 @@ export function gameScreen(app) {
     if (ending) {
       if (hasNext) {
         const next = content.chapters[s.chapter + 1];
-        buttons.push(button(`Continue to Part Two: ${next.title}`, () => perform(() => game.startNextChapter())));
+        buttons.push(button(`Continue to Part Two: ${next.title}`, () => { perform(() => game.startNextChapter()); app.saveChapterStart(); }));
       }
       buttons.push(button('Go back to the final choice', () => app.loadFrom('checkpoint')));
     } else if (hasNext) {
       const next = content.chapters[s.chapter + 1];
-      buttons.push(button(`Continue to ${next.title}`, () => perform(() => game.startNextChapter())));
+      buttons.push(button(`Continue to ${next.title}`, () => { perform(() => game.startNextChapter()); app.saveChapterStart(); }));
     }
     if (!ending) buttons.push(button(`Keep exploring Chapter ${s.chapter}`, () => perform(() => game.continueAfterChapter())));
     buttons.push(button('Return to the main menu', () => app.show('title')));
@@ -229,7 +229,10 @@ export function gameScreen(app) {
     focusTarget: () => beatEl,
 
     onShow(params) {
-      if (params.newGame) showBeat(game.newGame().lines);
+      if (params.newGame) {
+        showBeat(game.newGame().lines);
+        app.saveChapterStart();
+      }
       else if (params.resume) showBeat(game.resume().lines);
       else if (!lastBeat.length) showBeat(game.resume().lines);
       render();

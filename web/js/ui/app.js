@@ -93,6 +93,18 @@ export function createApp({ root, game, saves, settings, announcer, audio, bus, 
       return true;
     },
 
+    // A copy of the state as each chapter begins, so Chapter select can replay it
+    // with the choices made before it. Endings can depend on a choice made
+    // chapters earlier; this is how players go back and choose differently.
+    saveChapterStart() {
+      const s = game.state;
+      if (!s || s.ended) return;
+      saves.save(`chapter.${s.chapter}`, game.snapshot(), game.saveMeta());
+    },
+    chapterStarts() {
+      return Object.keys(game.ctx.content.chapters).map(Number).filter((n) => saves.has(`chapter.${n}`)).sort((a, b) => a - b);
+    },
+
     newGame() {
       gameView = null;
       history.length = 0;

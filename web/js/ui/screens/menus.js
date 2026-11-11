@@ -48,6 +48,7 @@ export function titleScreen(app) {
     }),
   );
   if (latest) items.push(button('Load game', () => app.open('saves', { mode: 'load' })));
+  if (app.chapterStarts().length) items.push(button('Chapter select', () => app.open('chapters')));
   items.push(
     button('Settings', () => app.open('settings')),
     button('How to play', () => app.open('help')),
@@ -160,6 +161,31 @@ export function savesScreen(app, p) {
     backButton(app),
   );
   return { el, title: saving ? 'Save game' : 'Load game' };
+}
+
+// ---- chapter select -------------------------------------------------------------
+// Replays a chapter from its start, with the choices made before it.
+export function chaptersScreen(app) {
+  const chapters = app.game.ctx.content.chapters;
+  const reached = app.chapterStarts();
+  const total = Object.keys(chapters).length;
+  const buttons = reached.map((n) =>
+    button(chapters[n].title, () =>
+      app.open('confirm', {
+        question: `Replay ${chapters[n].title}? You start it with the choices you had made before it. Your autosave is replaced; saves in numbered slots are kept.`,
+        yes: 'Replay this chapter',
+        no: 'Cancel',
+        onYes: () => app.loadFrom(`chapter.${n}`),
+      }),
+    ),
+  );
+  const el = screen(
+    'Chapter select',
+    h('p', {}, `Replay any chapter you have reached: ${reached.length} of ${total}. Some endings depend on a choice made chapters earlier, so going back to an earlier chapter is how you find them.`),
+    buttonGroup('Chapters', buttons),
+    backButton(app),
+  );
+  return { el, title: 'Chapter select' };
 }
 
 // ---- message history ----------------------------------------------------------

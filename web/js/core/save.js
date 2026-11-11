@@ -92,6 +92,11 @@ export function createSaveManager(storage, prefix = 'tls') {
       });
     },
 
+    // Whether a slot holds a save, for slots outside SLOTS such as chapter starts.
+    has(slot) {
+      return !!safeGet(key(slot));
+    },
+
     latest() {
       const filled = this.list().filter((s) => !s.empty && !s.corrupt && s.meta?.savedAt);
       filled.sort((a, b) => b.meta.savedAt.localeCompare(a.meta.savedAt));

@@ -129,7 +129,7 @@ final class AppController: GameListener {
     private(set) var settings: GameSettings
 
     enum Screen: Equatable {
-        case firstRun, title, game, journal, reader(String), inventory, pause, saves(Bool), history, help, settings, confirm(Int)
+        case firstRun, title, game, journal, reader(String), inventory, pause, saves(Bool), chapters, history, help, settings, confirm(Int)
     }
     struct Confirm { let question: String, yes: String, no: String, onYes: () -> Void, onNo: (() -> Void)? }
     private(set) var screen: Screen = .title
@@ -212,6 +212,7 @@ final class AppController: GameListener {
         case .help: m = helpScreen()
         case .settings: m = settingsScreen()
         case .confirm(let n): m = confirmScreen(n)
+        case .chapters: m = chaptersScreen()
         }
         if fresh { modelSeq += 1 }
         m.id = modelSeq
@@ -291,9 +292,19 @@ final class AppController: GameListener {
         stack = []
         screen = .game
         showBeat(game.newGame().lines)
+        saveChapterStart()
         autosave()
         build(fresh: true)
     }
+
+    /// A copy of the state as each chapter begins, so Chapter select can replay it with the
+    /// choices made before it. Endings can depend on a choice made chapters earlier.
+    private func saveChapterStart() {
+        guard let s = game.state, s.ended == nil else { return }
+        let m = game.saveMeta()
+        saves.save("chapter.\(s.chapter)", game.snapshot(), room: m.room, chapter: m.chapter, clock: m.clock)
+    }
+    var chapterStarts: [Int] { game.content.chapters.keys.sorted().filter { !saves.meta("chapter.\($0)").empty } }
 
     // endings found in any playthrough, kept with the settings
     var endingsSeen: [String] { (store.data(forKey: "tls.endings")).flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
@@ -432,10 +443,10 @@ final class AppController: GameListener {
         var buttons: [MenuButton] = []
         let nextTitle = content.chapters[s.chapter + 1]?["title"]?.string ?? ""
         if ending != nil {
-            if hasNext { buttons.append(MenuButton(label: "Continue to Part Two: \(nextTitle)") { [unowned self] in perform { game.startNextChapter() } }) }
+            if hasNext { buttons.append(MenuButton(label: "Continue to Part Two: \(nextTitle)") { [unowned self] in perform { game.startNextChapter() }; saveChapterStart() }) }
             buttons.append(MenuButton(label: "Go back to the final choice") { [unowned self] in loadFrom("checkpoint") })
         } else if hasNext {
-            buttons.append(MenuButton(label: "Continue to \(nextTitle)") { [unowned self] in perform { game.startNextChapter() } })
+            buttons.append(MenuButton(label: "Continue to \(nextTitle)") { [unowned self] in perform { game.startNextChapter() }; saveChapterStart() })
         }
         if ending == nil { buttons.append(MenuButton(label: "Keep exploring Chapter \(s.chapter)") { [unowned self] in perform { game.continueAfterChapter() } }) }
         buttons.append(MenuButton(label: "Return to the main menu") { [unowned self] in show(.title) })
@@ -481,6 +492,7 @@ final class AppController: GameListener {
             confirm(Confirm(question: "Start a new game? Your autosave will be replaced. Saves in numbered slots are kept.", yes: "Start a new game", no: "Cancel", onYes: { [unowned self] in newGame() }, onNo: nil))
         })
         if latest != nil { items.append(MenuButton(label: "Load game") { [unowned self] in open(.saves(false)) }) }
+        if !chapterStarts.isEmpty { items.append(MenuButton(label: "Chapter select") { [unowned self] in open(.chapters) }) }
         items.append(MenuButton(label: "Settings") { [unowned self] in open(.settings) })
         items.append(MenuButton(label: "How to play") { [unowned self] in open(.help) })
         if settings.speechMode == "selfvoice" { host?.speak("The Last Signal. Main menu.") }
@@ -488,6 +500,24 @@ final class AppController: GameListener {
             .text("A psychological horror investigation. Played by ear.", style: "tagline"),
             .buttons("Main menu", items),
             .text("Parts One and Two: twelve chapters, ten endings.", style: "fineprint"),
+        ])
+    }
+
+    /// Replays a chapter from its start, with the choices made before it.
+    private func chaptersScreen() -> ScreenModel {
+        let chapters = game.content.chapters
+        let reached = chapterStarts
+        let buttons = reached.map { n -> MenuButton in
+            let title = chapters[n]?["title"]?.string ?? "Chapter \(n)"
+            return MenuButton(label: title) { [unowned self] in
+                confirm(Confirm(question: "Replay \(title)? You start it with the choices you had made before it. Your autosave is replaced; saves in numbered slots are kept.",
+                                yes: "Replay this chapter", no: "Cancel", onYes: { [unowned self] in loadFrom("chapter.\(n)") }, onNo: nil))
+            }
+        }
+        return ScreenModel(title: "Chapter select", blocks: [
+            .text("Replay any chapter you have reached: \(reached.count) of \(chapters.count). Some endings depend on a choice made chapters earlier, so going back to an earlier chapter is how you find them."),
+            .buttons("Chapters", buttons),
+            .buttons(nil, [MenuButton(label: "Back") { [unowned self] in back() }]),
         ])
     }
 

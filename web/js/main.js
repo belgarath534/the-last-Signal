@@ -10,7 +10,7 @@ import { createApp } from './ui/app.js';
 import { content } from './content/index.js';
 import { gameScreen } from './ui/screens/game.js';
 import {
-  firstRunScreen, titleScreen, confirmScreen, pauseScreen, savesScreen, historyScreen, helpScreen,
+  firstRunScreen, titleScreen, confirmScreen, pauseScreen, savesScreen, historyScreen, helpScreen, chaptersScreen,
 } from './ui/screens/menus.js';
 import { journalScreen, readerScreen, inventoryScreen } from './ui/screens/journal.js';
 import { settingsScreen } from './ui/screens/settings.js';
@@ -66,6 +66,7 @@ const app = createApp({
     confirm: confirmScreen,
     pause: pauseScreen,
     saves: savesScreen,
+    chapters: chaptersScreen,
     history: historyScreen,
     help: helpScreen,
     game: gameScreen,
