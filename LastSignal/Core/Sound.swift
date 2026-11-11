@@ -28,8 +28,17 @@ let cueSamples: [String: String] = [
     "door": "sfx-door", "car.door": "sfx-car-door", "locker": "sfx-locker", "latch": "sfx-latch", "locked": "sfx-locked",
     "elevator.open": "sfx-elevator", "radio.static": "sfx-radio-static", "radio.on": "sfx-radio-static",
     "chapter.end": "sfx-stinger", "stinger.death": "sfx-stinger", "stinger.soft": "sfx-hit-soft", "thunder": "sfx-thunder",
+    // real recordings (CC0, OpenGameArt), all levelled to the same loudness by tools/import_sounds.py
+    "ui.move": "sfx-ui-move", "ui.select": "sfx-ui-select", "ui.back": "sfx-ui-back", "ui.error": "sfx-ui-error", "saved": "sfx-saved",
+    "objective": "sfx-objective", "objective.done": "sfx-objective-done", "trust.up": "sfx-trust-up", "trust.down": "sfx-trust-down",
+    "secret": "sfx-secret", "pickup": "sfx-pickup", "document": "sfx-document", "tape": "sfx-tape", "listen": "sfx-listen",
+    "door.glass": "sfx-door-glass", "door.heavy": "sfx-door-heavy", "tarp": "sfx-tarp", "hit": "sfx-hit", "cart": "sfx-cart",
+    "footsteps": "sfx-footsteps", "footsteps.heavy": "sfx-footsteps-heavy", "footsteps.far": "sfx-footsteps-far",
+    "alarm": "sfx-alarm", "alarm.critical": "sfx-alarm-critical", "signal": "sfx-signal", "monitor": "sfx-monitor",
+    "flatline": "sfx-flatline", "card.accept": "sfx-card-accept",
 ]
-let startlingSamples: Set<String> = ["sfx-stinger", "sfx-locker", "sfx-car-door", "sfx-hit-soft", "sfx-thunder"]
+let startlingSamples: Set<String> = ["sfx-stinger", "sfx-locker", "sfx-car-door", "sfx-hit-soft", "sfx-thunder",
+                                     "sfx-alarm", "sfx-alarm-critical", "sfx-hit", "sfx-door-heavy", "sfx-footsteps-heavy"]
 let sampleFiles: [String: String] = [
     "amb-rain": "amb-rain", "amb-corridor": "amb-corridor", "amb-facility": "amb-facility", "amb-generator": "amb-generator",
     "amb-sublevel": "music-sublevel",

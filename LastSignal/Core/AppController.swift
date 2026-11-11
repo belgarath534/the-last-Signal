@@ -607,6 +607,8 @@ final class AppController: GameListener {
             .heading("Daniel and trust"),
             .text("How honest you are, and what you choose to say, changes how much Daniel trusts you. Lies are remembered, and can be discovered later. By default a soft sound plays when his trust changes. You can turn that off, or have it spoken, in Settings."),
             .buttons("Sound glossary", AppController.glossary.map { cue, label in MenuButton(label: "Play: \(label)") { [unowned self] in sound.cue(cue) } }),
+            .heading("Sound credits"),
+            .text("Many sound effects are public domain (CC0) recordings from OpenGameArt.org, by Kenney, rubberduck, OwlishMedia, qubodup, StarNinjas, Spring Spring, Thimras and EZduzziteh. Thank you."),
             .buttons(nil, [MenuButton(label: "Back") { [unowned self] in back() }]),
         ])
     }
