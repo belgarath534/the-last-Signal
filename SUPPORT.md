@@ -12,4 +12,4 @@ The Last Signal is an audio horror investigation game made for VoiceOver and hea
 Text size, high contrast, volume for effects, ambience and music, haptics, and an option to have the game read the story in its own voice instead of VoiceOver.
 
 ## Problems or ideas
-Open an issue at https://github.com/belgarath534/the-last-Signal/issues and describe what happened and which chapter you were in.
+Email support@dungen-descent.org and tell us what happened and which chapter you were in. We read every message.
