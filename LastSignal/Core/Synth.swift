@@ -6,6 +6,8 @@ final class PCM {
     let rate: Double
     init(_ samples: [Float], rate: Double = Synth.SR) { self.samples = samples; self.rate = rate }
     var duration: Double { Double(samples.count) / rate }
+    var peak: Float { samples.reduce(0) { Swift.max($0, abs($1)) } }
+    func scaled(_ k: Float) -> PCM { PCM(samples.map { $0 * k }, rate: rate) }
 }
 
 /// Sound made in code, matching the Web Audio graphs of web/js/audio/audio-engine.js.

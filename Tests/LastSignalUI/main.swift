@@ -81,7 +81,16 @@ do {
     print("loaded slot 1 back in:", app.game.state.location)
     // repeat, history, settings, help
     try press("Repeat last")
-    try press("Pause menu"); try press("Message history"); try press("Back"); try press("Settings"); try press("Back"); try press("How to play"); try press("Play: The signal"); try press("Back"); try press("Resume")
+    try press("Pause menu"); try press("Message history"); try press("Back"); try press("Settings")
+    // VoiceOver reads the slider's value from the screen: it has to change as soon as the slider moves
+    func sliderValue(_ label: String) -> Double? {
+        for blk in app.model.blocks { if case let .slider(l, v, _, _) = blk, l == label { return v } }
+        return nil
+    }
+    for blk in app.model.blocks { if case let .slider(l, _, set, _) = blk, l == "Master volume" { set(0.3) } }
+    guard sliderValue("Master volume") == 0.3 else { throw Failure(msg: "slider still shows \(sliderValue("Master volume") ?? -1) after moving to 0.3") }
+    print("slider value updates: OK")
+    try press("Back"); try press("How to play"); try press("Play: The signal"); try press("Back"); try press("Resume")
     // quit and continue
     try press("Pause menu"); try press("Quit to main menu"); try press("Quit to main menu")
     guard app.model.title == "The Last Signal" else { throw Failure(msg: "quit did not reach the title") }

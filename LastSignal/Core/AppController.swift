@@ -630,7 +630,7 @@ final class AppController: GameListener {
         }]))
         blocks.append(.heading("Sound"))
         for (label, key) in [("Master volume", \GameSettings.masterVolume), ("Ambience volume", \GameSettings.ambienceVolume), ("Effects volume", \GameSettings.effectsVolume), ("Music volume", \GameSettings.musicVolume)] {
-            blocks.append(.slider(label: label, value: settings[keyPath: key], set: { [unowned self] in set(key, $0); applyVolumes() },
+            blocks.append(.slider(label: label, value: settings[keyPath: key], set: { [unowned self] in set(key, $0); applyVolumes(); build() },
                                   done: { [unowned self] in sound.cue(key == \GameSettings.ambienceVolume ? "signal" : "ui.select") }))
         }
         blocks.append(.toggle(label: "Music while exploring", hint: "Quiet music under every chapter. Turn off if it ever covers VoiceOver.", value: settings.explorationMusic, set: { [unowned self] in set(\.explorationMusic, $0) }))

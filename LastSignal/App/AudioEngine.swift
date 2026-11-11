@@ -7,6 +7,13 @@ final class AudioEngine: AudioOut {
     private let engine = AVAudioEngine()
     private let sfxBus = AVAudioMixerNode()
     private let ambBus = AVAudioMixerNode()
+    /// keeps everything together from crackling when many sounds play at once
+    private let limiter = AVAudioUnitEffect(audioComponentDescription: AudioComponentDescription(
+        componentType: kAudioUnitType_Effect, componentSubType: kAudioUnitSubType_DynamicsProcessor,
+        componentManufacturer: kAudioUnitManufacturer_Apple, componentFlags: 0, componentFlagsMask: 0))
+    private let preMix = AVAudioMixerNode()
+    /// the built-in hums and noise layers were made at the web version's tiny levels
+    private let synthBedBoost = 4.0
     private let mono = AVAudioFormat(standardFormatWithSampleRate: Synth.SR, channels: 1)!
     private let stereo = AVAudioFormat(standardFormatWithSampleRate: Synth.SR, channels: 2)!
     private var files: [String: AVAudioPCMBuffer] = [:]
@@ -40,9 +47,14 @@ final class AudioEngine: AudioOut {
 
     init() {
         configureSession()
-        engine.attach(sfxBus); engine.attach(ambBus)
-        engine.connect(sfxBus, to: engine.mainMixerNode, format: stereo)
-        engine.connect(ambBus, to: engine.mainMixerNode, format: stereo)
+        engine.attach(sfxBus); engine.attach(ambBus); engine.attach(preMix); engine.attach(limiter)
+        engine.connect(sfxBus, to: preMix, format: stereo)
+        engine.connect(ambBus, to: preMix, format: stereo)
+        engine.connect(preMix, to: limiter, format: stereo)
+        engine.connect(limiter, to: engine.mainMixerNode, format: stereo)
+        AudioUnitSetParameter(limiter.audioUnit, kDynamicsProcessorParam_Threshold, kAudioUnitScope_Global, 0, -3, 0)
+        AudioUnitSetParameter(limiter.audioUnit, kDynamicsProcessorParam_HeadRoom, kAudioUnitScope_Global, 0, 3, 0)
+        AudioUnitSetParameter(limiter.audioUnit, kDynamicsProcessorParam_AttackTime, kAudioUnitScope_Global, 0, 0.002, 0)
         for _ in 0..<12 { sfxVoices.append(makeVoice(to: sfxBus)) }
         for _ in 0..<8 { ambVoices.append(makeVoice(to: ambBus)) }
         start()
@@ -169,10 +181,10 @@ final class AudioEngine: AudioOut {
                 buf = files[name]; gain = g; lowpass = l; pan = p
             case let .noise(key, filter, freq, Q, g, p):
                 if loopCache[key] == nil { loopCache[key] = buffer(Synth.noiseLoop(filter: filter, freq: freq, Q: Q)) }
-                buf = loopCache[key]; gain = g; pan = p
+                buf = loopCache[key]; gain = g * synthBedBoost; pan = p
             case let .tone(key, freq, type, g):
                 if loopCache[key] == nil { loopCache[key] = buffer(Synth.toneLoop(freq: freq, type: type)) }
-                buf = loopCache[key]; gain = g
+                buf = loopCache[key]; gain = g * synthBedBoost
             }
             guard let buf else { continue }
             let v = makeVoice(to: s.mixer)

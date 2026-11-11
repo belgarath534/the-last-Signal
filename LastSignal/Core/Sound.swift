@@ -253,6 +253,15 @@ final class SoundDirector {
 
     private func pan(_ p: Double?) -> Double { mono() ? 0 : Swift.max(-1, Swift.min(1, p ?? 0)) }
 
+    /// How loud each made-in-code cue peaks, so it sits level with the recorded sounds.
+    /// (The web version's numbers were tiny; on iPhone they came out far too quiet.)
+    static func targetPeak(_ name: String) -> Float {
+        if name.hasPrefix("ui.") || name == "saved" { return 0.35 }
+        if name == "footsteps.far" || name == "cart" || name == "listen" { return 0.55 }
+        return 0.8
+    }
+    private var loudness: [String: Float] = [:]
+
     /// Plays a named cue: the recorded file if there is one, otherwise the synthesised sound.
     func cue(_ name: String, pan p: Double? = nil, gain: Double? = nil) {
         if let sample = cueSamples[name] {
@@ -266,7 +275,12 @@ final class SoundDirector {
         if cache[key] == nil {
             // the recipe is asked with a marker pan, to learn whether this cue follows a direction at all
             guard let parts = cueParts(name, pan: 1, soft: { soft ? $0 * 0.4 : $0 }) else { return }
-            cache[key] = Synth.render(parts.map { var q = $0; q.pan = nil; return q })
+            // one gain per cue, from its full-strength version, so "reduce sudden loud sounds" still lowers it
+            if loudness[name] == nil, let full = cueParts(name, pan: 1, soft: { $0 }) {
+                let peak = Synth.render(full.map { var q = $0; q.pan = nil; return q }).peak
+                loudness[name] = peak > 0 ? Swift.min(SoundDirector.targetPeak(name) / peak, 30) : 1
+            }
+            cache[key] = Synth.render(parts.map { var q = $0; q.pan = nil; return q }).scaled(loudness[name] ?? 1)
             if parts.contains(where: { $0.pan != nil }) { panned.insert(name) }
         }
         out?.playPCM(cache[key]!, pan: panned.contains(name) ? pan(p) : 0, bus: .sfx)
@@ -278,7 +292,10 @@ final class SoundDirector {
 
     func ambientParts(_ parts: [Synth.Part]) {
         let p = parts.first?.pan
-        out?.playPCM(Synth.render(parts.map { var q = $0; q.pan = nil; return q }), pan: pan(p), bus: .ambience)
+        // occasional sounds in a room: levelled to a steady, audible peak
+        let pcm = Synth.render(parts.map { var q = $0; q.pan = nil; return q })
+        let peak = pcm.peak
+        out?.playPCM(peak > 0 ? pcm.scaled(Swift.min(0.5 / peak, 20)) : pcm, pan: pan(p), bus: .ambience)
     }
 
     /// Changes the room ambience when the room (or something it depends on) changes.
